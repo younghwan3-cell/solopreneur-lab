@@ -1,5 +1,5 @@
 import os
-import sys
+impor    t sys
 import json
 import base64
 import urllib.parse
@@ -23,6 +23,14 @@ def setup_gemini():
 
 def generate_blog_content():
     print("[Info] Generating blog content with Gemini...")
+    print("[Info] Listing models:")
+    try:
+            for m in genai.list_models():
+                    if 'generateContent' in m.supported_generation_methods:
+                            print(f"  {m.name}")
+    except Exception as e:
+        print(f"  Failed to list models: {e}")
+                
     model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = """
