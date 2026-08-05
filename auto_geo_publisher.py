@@ -23,7 +23,7 @@ def setup_gemini():
 
 def generate_blog_content():
     print("[Info] Generating blog content with Gemini...")
-    model = genai.GenerativeModel('gemini-2.5-flash')
+    model = genai.GenerativeModel('gemini-1.5-flash')
     
     prompt = """
 You are a professional business strategist and travel solopreneur blogger who specializes in 'Solopreneurship, bootstrapping, and digital nomad monetization'.
