@@ -1,5 +1,5 @@
 import os
-impor    t sys
+import sys
 import json
 import base64
 import urllib.parse
