@@ -18,12 +18,12 @@ def setup_gemini():
         if not GEMINI_API_KEY:
                     print("[Error] GEMINI_API_KEY not set")
                     sys.exit(1)
-                genai.configure(api_key=GEMINI_API_KEY)
+    genai.configure(api_key=GEMINI_API_KEY)
     try:
-                print("[Info] Supported models list:")
-                for m in genai.list_models():
-                                if 'generateContent' in m.supported_generation_methods:
-                                                    print(f" - {m.name}")
+        print("[Info] Supported models list:")
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                print(f" - {m.name}")
     except Exception as e:
         print(f"[Warning] Could not list models: {e}")
 
