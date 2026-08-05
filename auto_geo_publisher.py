@@ -19,7 +19,7 @@ def setup_gemini():
           if not GEMINI_API_KEY:
                         print("[Error] GEMINI_API_KEY not set")
                         sys.exit(1)
-                    genai.configure(api_key=GEMINI_API_KEY)
+    genai.configure(api_key=GEMINI_API_KEY)
 
 def generate_blog_content():
           print("[Info] Generating blog content with Gemini...")
