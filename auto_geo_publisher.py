@@ -15,6 +15,19 @@ WP_BASE_URL = "https://koreaebook.co.kr"
 
 DRY_RUN = "--dry-run" in sys.argv
 
+def setup_gemini():
+    if not GEMINI_API_KEY:
+        print("[Error] GEMINI_API_KEY not set")
+        sys.exit(1)
+    genai.configure(api_key=GEMINI_API_KEY)
+    try:
+        print("[Info] Supported models list:")
+        for m in genai.list_models():
+            if 'generateContent' in m.supported_generation_methods:
+                print(f" - {m.name}")
+    except Exception as e:
+        print(f"[Warning] Could not list models: {e}")
+
 def generate_blog_content():
     print("[Info] Generating content...")
     model_name = 'gemini-1.5-flash'
@@ -22,10 +35,9 @@ def generate_blog_content():
     try:
         supported = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
         target_name = f"models/{model_name}"
-        
         if target_name not in supported:
             print(f"[Warning] {target_name} not in list.")
-            candidates = [name for name in supported if 'gemini-1.5-flash' in name or 'gemini-2.0-flash' in name or 'gemini-1.5' in name]
+            candidates = [name for name in supported if 'gemini-1.5-flash' in name or 'gemini-2.0-flash' in name or 'gemini-1.5' in name or 'gemini' in name]
             if candidates:
                 model_name = candidates[0].replace("models/", "")
                 print(f"[Info] Fallback to: {model_name}")
