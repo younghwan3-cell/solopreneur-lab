@@ -5,7 +5,7 @@ import base64
 from datetime import datetime, timedelta
 import pytz
 import requests
-import google.generativeai as genai
+from google import genai
 
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 WP_USERNAME = os.environ.get("WP_USERNAME")
@@ -18,17 +18,12 @@ def setup_gemini():
     if not GEMINI_API_KEY:
         print("[Error] GEMINI_API_KEY not set")
         sys.exit(1)
-    genai.configure(api_key=GEMINI_API_KEY)
+    return genai.Client(api_key=GEMINI_API_KEY)
 
-def generate_blog_content():
+def generate_blog_content(client):
     print("[Info] Generating content...")
     model_name = 'gemini-1.5-flash'
     print(f"[Info] Using model: {model_name}")
-    model = genai.GenerativeModel(model_name)
-    
-
-    print(f"[Info] Using model: {model_name}")
-    model = genai.GenerativeModel(model_name)
 
     prompt = """
 You are a professional business strategist and travel solopreneur blogger who specializes in 'Solopreneurship, bootstrapping, and digital nomad monetization'.
@@ -52,13 +47,14 @@ The output MUST be returned strictly as a JSON object matching the schema below 
 
 Writing Guidelines (Write the values in Korean):
 1. Focus on practical tips and real-world execution.
-2. Use polite and professional honorifics (~요, ~습니다) in Korean.
+2. Use polite and professional honorifics (~요, ~습니) in Korean.
 3. Make sure the content is highly detailed and SEO optimized.
 """
 
-    response = model.generate_content(
-        prompt,
-        generation_config={"response_mime_type": "application/json"}
+    response = client.models.generate_content(
+        model=model_name,
+        contents=prompt,
+        config={"response_mime_type": "application/json"}
     )
     
     try:
@@ -166,8 +162,8 @@ def publish_to_wordpress(title, content):
         print(f"Error: {response.status_code}, {response.text}")
 
 def main():
-    setup_gemini()
-    blog_data = generate_blog_content()
+    client = setup_gemini()
+    blog_data = generate_blog_content(client)
     title = blog_data['title']
     html_content = construct_html_post(blog_data)
     
