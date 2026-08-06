@@ -26,15 +26,6 @@ def generate_blog_content():
     print(f"[Info] Using model: {model_name}")
     model = genai.GenerativeModel(model_name)
     
-    try:
-        supported = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-        target_name = f"models/{model_name}"
-        if target_name not in supported:
-            candidates = [name for name in supported if 'gemini-1.5' in name or 'gemini-2.0' in name or 'gemini' in name]
-            if candidates:
-                model_name = candidates[0].replace("models/", "")
-    except Exception as e:
-        print(f"[Warning] Model fallback check: {e}")
 
     print(f"[Info] Using model: {model_name}")
     model = genai.GenerativeModel(model_name)
