@@ -13,7 +13,6 @@ WP_APP_PASSWORD = os.environ.get("WP_APP_PASSWORD")
 WP_BASE_URL = "https://koreaebook.co.kr"
 
 DRY_RUN = "--dry-run" in sys.argv
-
 def setup_gemini():
     if not GEMINI_API_KEY:
         print("[Error] GEMINI_API_KEY not set")
