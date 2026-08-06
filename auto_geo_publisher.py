@@ -27,17 +27,17 @@ def setup_gemini():
         print(f"[Warning] Could not list models: {e}")
 
 def generate_blog_content():
-        print("[Info] Generating content...")
+    print("[Info] Generating content...")
     model_name = 'gemini-1.5-flash'
     try:
-                supported = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
-                target_name = f"models/{model_name}"
-                if target_name not in supported:
-                                print(f"[Warning] {target_name} not in list.")
-                                candidates = [name for name in supported if 'gemini-1.5' in name or 'gemini-2.0' in name]
-                                if candidates:
-                                                    model_name = candidates[0].replace("models/", "")
-                                                    print(f"[Info] Fallback to: {model_name}")
+        supported = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
+        target_name = f"models/{model_name}"
+        if target_name not in supported:
+            print(f"[Warning] {target_name} not in list.")
+            candidates = [name for name in supported if 'gemini-1.5' in name or 'gemini' in name]
+            if candidates:
+                model_name = candidates[0].replace("models/", "")
+                print(f"[Info] Fallback to: {model_name}")
     except Exception as e:
         print(f"[Warning] Fallback check failed: {e}")
 
