@@ -47,7 +47,7 @@ The output MUST be returned strictly as a JSON object matching the schema below 
 
 Writing Guidelines (Write the values in Korean):
 1. Focus on practical tips and real-world execution.
-2. Use polite and professional honorifics (~요, ~습니) in Korean.
+2. Use polite and professional honorifics (~요, ~습니다) in Korean.
 3. Make sure the content is highly detailed and SEO optimized.
 """
 
