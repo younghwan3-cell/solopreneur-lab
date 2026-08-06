@@ -23,6 +23,8 @@ def setup_gemini():
 def generate_blog_content():
     print("[Info] Generating content...")
     model_name = 'gemini-1.5-flash'
+    print(f"[Info] Using model: {model_name}")
+    model = genai.GenerativeModel(model_name)
     
     try:
         supported = [m.name for m in genai.list_models() if 'generateContent' in m.supported_generation_methods]
