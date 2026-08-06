@@ -15,9 +15,9 @@ WP_BASE_URL = "https://koreaebook.co.kr"
 DRY_RUN = "--dry-run" in sys.argv
 
 def setup_gemini():
-        if not GEMINI_API_KEY:
-                    print("[Error] GEMINI_API_KEY not set")
-                    sys.exit(1)
+    if not GEMINI_API_KEY:
+        print("[Error] GEMINI_API_KEY not set")
+        sys.exit(1)
     genai.configure(api_key=GEMINI_API_KEY)
     try:
         print("[Info] Supported models list:")
