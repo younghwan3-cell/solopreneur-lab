@@ -36,12 +36,13 @@ def setup_gemini():
         print("[Error] GEMINI_API_KEY가 설정되지 않았습니다.")
         sys.exit(1)
     return genai.Client(api_key=GEMINI_API_KEY)
-
 def generate_blog_content(client):
     print("[Info] 콘텐츠 생성 중...")
-    # 최신 표준 모델 사용
-    model_name = 'gemini-2.5-flash'
+    
+    # 모델명을 gemini-2.0-flash 또는 gemini-1.5-flash 로 변경합니다.
+    model_name = 'gemini-2.0-flash'
     print(f"[Info] 사용 모델: {model_name}")
+
 
     prompt = """
 You are a professional business strategist and travel solopreneur blogger who specializes in 'Solopreneurship, bootstrapping, and digital nomad monetization'.
