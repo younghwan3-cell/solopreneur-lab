@@ -45,7 +45,7 @@ def generate_blog_content(client):
     print("[Info] 블로그 콘텐츠 생성 중...")
     
     # 최신 모델 지정
-    model_name = 'gemini-flash'
+    model_name = 'gemini-2.5-flash'
     print(f"[Info] 사용 모델: {model_name}")
 
     prompt = """
