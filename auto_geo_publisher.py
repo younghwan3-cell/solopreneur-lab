@@ -15,7 +15,7 @@ from google.genai import types
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 WP_USERNAME = os.environ.get("WP_USERNAME")
 WP_APP_PASSWORD = os.environ.get("WP_APP_PASSWORD")
-WP_BASE_URL = "[https://koreaebook.co.kr](https://koreaebook.co.kr)"
+WP_BASE_URL = "https://koreaebook.co.kr"
 
 DRY_RUN = "--dry-run" in sys.argv
 
@@ -44,7 +44,7 @@ def setup_gemini():
 def generate_blog_content(client):
     print("[Info] 블로그 콘텐츠 생성 중...")
     
-    # 최신 표준 모델 사용 (gemini-2.5-flash)
+    # 최신 모델 지정
     model_name = 'gemini-2.5-flash'
     print(f"[Info] 사용 모델: {model_name}")
 
@@ -60,7 +60,6 @@ Guidelines for output values:
 """
 
     try:
-        # Structured Output 설정으로 정확한 JSON 응답 보장
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
@@ -81,7 +80,6 @@ Guidelines for output values:
         sys.exit(1)
 
 def construct_html_post(data):
-    """생성된 JSON 데이터를 바탕으로 워드프레스용 HTML 본문 생성"""
     html = f"""
     <!-- TL;DR (AI 요약) -->
     <div class="tldr-section" style="background-color: #f7f9fa; border-left: 4px solid #0056b3; padding: 15px; margin-bottom: 30px; border-radius: 4px;">
@@ -125,7 +123,6 @@ def construct_html_post(data):
     return html
 
 def get_or_create_category(headers):
-    """'1인 기업 & 창업' 카테고리가 존재하면 가져오고, 없으면 생성"""
     category_name = "1인 기업 & 창업"
     url = f"{WP_BASE_URL}/wp-json/wp/v2/categories"
     try:
@@ -136,7 +133,6 @@ def get_or_create_category(headers):
                 if cat['name'] == category_name:
                     return cat['id']
             
-            # 카테고리가 없으면 생성
             payload = {"name": category_name}
             create_res = requests.post(url, json=payload, headers=headers, timeout=10)
             if create_res.status_code == 201:
@@ -144,7 +140,59 @@ def get_or_create_category(headers):
     except Exception as e:
         print(f"[Warning] 카테고리 조회/생성 중 문제 발생 (기본값 1로 진행): {e}")
     
-    return 1  # 실패 시 기본 미분류(Uncategorized) 카테고리 ID
+    return 1
 
 def publish_to_wordpress(title, content):
-    """워드프레스 REST
+    if not WP_USERNAME or not WP_APP_PASSWORD:
+        print("[Error] WP_USERNAME 또는 WP_APP_PASSWORD가 설정되지 않았습니다.")
+        sys.exit(1)
+    
+    credentials = f"{WP_USERNAME}:{WP_APP_PASSWORD}"
+    token = base64.b64encode(credentials.encode()).decode()
+    headers = {
+        "Authorization": f"Basic {token}",
+        "Content-Type": "application/json"
+    }
+    
+    kst = ZoneInfo("Asia/Seoul")
+    now_kst = datetime.now(kst)
+    target_time = now_kst.replace(hour=9, minute=0, second=0, microsecond=0)
+    if now_kst >= target_time:
+        target_time += timedelta(days=1)
+    
+    wp_date_str = target_time.strftime('%Y-%m-%dT%H:%M:%S')
+    category_id = get_or_create_category(headers)
+    
+    post_data = {
+        "title": title,
+        "content": content,
+        "status": "future",
+        "date": wp_date_str,
+        "categories": [category_id]
+    }
+    
+    post_url = f"{WP_BASE_URL}/wp-json/wp/v2/posts"
+    try:
+        response = requests.post(post_url, json=post_data, headers=headers, timeout=15)
+        if response.status_code == 201:
+            print(f"[Success] 워드프레스 글 예약 성공! (발행 예정 시간: {wp_date_str})")
+        else:
+            print(f"[Error] 워드프레스 발행 실패 (Status Code: {response.status_code}): {response.text}")
+    except Exception as e:
+        print(f"[Error] 워드프레스 API 요청 실패: {e}")
+
+def main():
+    client = setup_gemini()
+    blog_data = generate_blog_content(client)
+    title = blog_data.get('title', '제목 없음')
+    html_content = construct_html_post(blog_data)
+    
+    if DRY_RUN:
+        print("\n--- [DRY RUN 모드 실행 결과] ---")
+        print(f"Title: {title}")
+        print(f"Content:\n{html_content}")
+    else:
+        publish_to_wordpress(title, html_content)
+
+if __name__ == "__main__":
+    main()
