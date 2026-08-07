@@ -9,15 +9,19 @@ from pydantic import BaseModel
 from google import genai
 from google.genai import types
 
+# ---------------------------------------------------------
 # 환경 변수 및 설정
+# ---------------------------------------------------------
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 WP_USERNAME = os.environ.get("WP_USERNAME")
 WP_APP_PASSWORD = os.environ.get("WP_APP_PASSWORD")
-WP_BASE_URL = "https://koreaebook.co.kr"
+WP_BASE_URL = "[https://koreaebook.co.kr](https://koreaebook.co.kr)"
 
 DRY_RUN = "--dry-run" in sys.argv
 
-# 1. Structured Output을 위한 Pydantic Schema 정의
+# ---------------------------------------------------------
+# 1. Pydantic 스키마 정의 (Gemini JSON 응답 구조 강제)
+# ---------------------------------------------------------
 class BlogPostSchema(BaseModel):
     title: str
     tldr: str
@@ -33,35 +37,30 @@ class BlogPostSchema(BaseModel):
 
 def setup_gemini():
     if not GEMINI_API_KEY:
-        print("[Error] GEMINI_API_KEY가 설정되지 않았습니다.")
+        print("[Error] GEMINI_API_KEY 환경 변수가 설정되지 않았습니다.")
         sys.exit(1)
     return genai.Client(api_key=GEMINI_API_KEY)
 
 def generate_blog_content(client):
-    print("[Info] 콘텐츠 생성 중...")
+    print("[Info] 블로그 콘텐츠 생성 중...")
     
-    # 구형 모델(gemini-2.0-flash) 대신 최신 모델로 변경
+    # 최신 표준 모델 사용 (gemini-2.5-flash)
     model_name = 'gemini-2.5-flash'
     print(f"[Info] 사용 모델: {model_name}")
 
     prompt = """
 You are a professional business strategist and travel solopreneur blogger who specializes in 'Solopreneurship, bootstrapping, and digital nomad monetization'.
 Please choose a trendy and interesting specific topic related to this concept and write a high-quality blog post in Korean.
-...
 
-
-    prompt = """
-You are a professional business strategist and travel solopreneur blogger who specializes in 'Solopreneurship, bootstrapping, and digital nomad monetization'.
-Please choose a trendy and interesting specific topic related to this concept and write a high-quality blog post in Korean.
-
-Guidelines for response:
+Guidelines for output values:
 1. Focus on practical tips and real-world execution.
 2. Use polite and professional honorifics (~요, ~습니다) in Korean.
 3. Make sure the content is highly detailed and SEO optimized.
-4. Each strategy (content_strategy_1, 2, 3) must be written in valid HTML format using <h3> and <p> tags in Korean.
+4. Each strategy (content_strategy_1, content_strategy_2, content_strategy_3) MUST be valid HTML using <h3> and <p> tags in Korean.
 """
 
     try:
+        # Structured Output 설정으로 정확한 JSON 응답 보장
         response = client.models.generate_content(
             model=model_name,
             contents=prompt,
@@ -72,20 +71,21 @@ Guidelines for response:
             )
         )
         
-        # Structured Output 덕분에 파싱 오류 없이 안심하고 JSON load 가능
         data = json.loads(response.text)
         return data
+
     except Exception as e:
-        print(f"[Error] Gemini API 호출 또는 JSON 파싱 실패: {e}")
+        print(f"[Error] Gemini API 호출 또는 JSON 파싱 중 오류 발생: {e}")
         if 'response' in locals() and hasattr(response, 'text'):
-            print(f"Raw response:\n{response.text}")
+            print(f"[Raw Response]:\n{response.text}")
         sys.exit(1)
 
 def construct_html_post(data):
+    """생성된 JSON 데이터를 바탕으로 워드프레스용 HTML 본문 생성"""
     html = f"""
-    <!-- TL;DR (AI Summary) -->
+    <!-- TL;DR (AI 요약) -->
     <div class="tldr-section" style="background-color: #f7f9fa; border-left: 4px solid #0056b3; padding: 15px; margin-bottom: 30px; border-radius: 4px;">
-        <p style="font-weight: bold; margin-top: 0; color: #333;">💡 요약 (TL;DR)</p>
+        <p style="font-weight: bold; margin-top: 0; color: #333;">💡 핵심 요약 (TL;DR)</p>
         <p style="font-style: italic; color: #555; line-height: 1.6; margin-bottom: 0;">{data.get('tldr', '')}</p>
     </div>
 
@@ -125,6 +125,7 @@ def construct_html_post(data):
     return html
 
 def get_or_create_category(headers):
+    """'1인 기업 & 창업' 카테고리가 존재하면 가져오고, 없으면 생성"""
     category_name = "1인 기업 & 창업"
     url = f"{WP_BASE_URL}/wp-json/wp/v2/categories"
     try:
@@ -135,68 +136,15 @@ def get_or_create_category(headers):
                 if cat['name'] == category_name:
                     return cat['id']
             
-            # 카테고리가 없을 경우 생성
+            # 카테고리가 없으면 생성
             payload = {"name": category_name}
             create_res = requests.post(url, json=payload, headers=headers, timeout=10)
             if create_res.status_code == 201:
                 return create_res.json()['id']
     except Exception as e:
-        print(f"[Warning] 카테고리 확인/생성 중 오류 발생: {e}")
+        print(f"[Warning] 카테고리 조회/생성 중 문제 발생 (기본값 1로 진행): {e}")
     
-    return 1  # 실패 시 기본 Uncategorized(1)로 반환
+    return 1  # 실패 시 기본 미분류(Uncategorized) 카테고리 ID
 
 def publish_to_wordpress(title, content):
-    if not WP_USERNAME or not WP_APP_PASSWORD:
-        print("[Error] WP_USERNAME 또는 WP_APP_PASSWORD가 설정되지 않았습니다.")
-        sys.exit(1)
-    
-    credentials = f"{WP_USERNAME}:{WP_APP_PASSWORD}"
-    token = base64.b64encode(credentials.encode()).decode()
-    headers = {
-        "Authorization": f"Basic {token}",
-        "Content-Type": "application/json"
-    }
-    
-    # KST 기준 익일 오전 9시 예약 시간 계산
-    kst = ZoneInfo("Asia/Seoul")
-    now_kst = datetime.now(kst)
-    target_time = now_kst.replace(hour=9, minute=0, second=0, microsecond=0)
-    if now_kst >= target_time:
-        target_time += timedelta(days=1)
-    
-    wp_date_str = target_time.strftime('%Y-%m-%dT%H:%M:%S')
-    category_id = get_or_create_category(headers)
-    
-    post_data = {
-        "title": title,
-        "content": content,
-        "status": "future",
-        "date": wp_date_str,
-        "categories": [category_id]
-    }
-    
-    post_url = f"{WP_BASE_URL}/wp-json/wp/v2/posts"
-    try:
-        response = requests.post(post_url, json=post_data, headers=headers, timeout=15)
-        if response.status_code == 201:
-            print(f"[Success] 포스팅 예약 성공! (예약 시간: {wp_date_str})")
-        else:
-            print(f"[Error] 워드프레스 발행 실패 (Status: {response.status_code}): {response.text}")
-    except Exception as e:
-        print(f"[Error] 워드프레스 API 요청 실패: {e}")
-
-def main():
-    client = setup_gemini()
-    blog_data = generate_blog_content(client)
-    title = blog_data.get('title', '제목 없음')
-    html_content = construct_html_post(blog_data)
-    
-    if DRY_RUN:
-        print("\n--- [DRY RUN MODE] ---")
-        print(f"Title: {title}")
-        print(f"Content:\n{html_content}")
-    else:
-        publish_to_wordpress(title, html_content)
-
-if __name__ == "__main__":
-    main()
+    """워드프레스 REST
